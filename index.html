@@ -230,6 +230,17 @@
                 </div>
 
                 <div id="view-checkin" class="view-section hidden max-w-4xl mx-auto">
+                    <!-- ปุ่ม Import / Export ฝั่ง Check-in -->
+                    <div class="flex justify-end gap-2 mb-4">
+                        <input type="file" id="import-attendance-file" accept=".csv" class="hidden" onchange="processCSV(event, 'Attendance')">
+                        <button onclick="document.getElementById('import-attendance-file').click()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                            <i class="fa-solid fa-file-import"></i> <span data-i18n="importCsv">Import CSV</span>
+                        </button>
+                        <button onclick="exportCSV('Attendance')" class="bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                            <i class="fa-solid fa-download"></i> <span data-i18n="export">Export</span>
+                        </button>
+                    </div>
+
                     <div class="glass-card p-6 md:p-8 shadow-xl border-t-4 border-t-primary">
                         <div class="text-center mb-8">
                             <i class="fa-solid fa-qrcode text-5xl text-primary mb-4"></i>
@@ -331,9 +342,10 @@
                                 <thead class="text-xs text-gray-700 uppercase bg-gray-50/50 border-b border-gray-200/60">
                                     <tr>
                                         <th class="px-6 py-4 font-semibold" data-i18n="colEmpId">Emp ID</th>
-                                        <th class="px-6 py-4 font-semibold" data-i18n="colName">Name</th>
-                                        <th class="px-6 py-4 font-semibold" data-i18n="colDept">Department</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colFullName">Full Name</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colFactory">Factory</th>
                                         <th class="px-6 py-4 font-semibold" data-i18n="colPosition">Position</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colEmail">Email</th>
                                         <th class="px-6 py-4 font-semibold text-right" data-i18n="colActions">Actions</th>
                                     </tr>
                                 </thead>
@@ -471,21 +483,26 @@
                         <label class="block text-sm text-gray-600 mb-1" data-i18n="colEmpId">Employee ID</label>
                         <input type="text" id="emp-id" required class="glass-input w-full px-3 py-2 rounded-lg text-sm" placeholder="EMP-001">
                     </div>
-                    <div>
-                        <label class="block text-sm text-gray-600 mb-1">First Name</label>
-                        <input type="text" id="emp-fname" required class="glass-input w-full px-3 py-2 rounded-lg text-sm">
+                    <div class="col-span-2">
+                        <label class="block text-sm text-gray-600 mb-1" data-i18n="colFullName">Full Name</label>
+                        <input type="text" id="emp-fullname" required class="glass-input w-full px-3 py-2 rounded-lg text-sm" placeholder="ชื่อ นามสกุล">
                     </div>
                     <div>
-                        <label class="block text-sm text-gray-600 mb-1">Last Name</label>
-                        <input type="text" id="emp-lname" required class="glass-input w-full px-3 py-2 rounded-lg text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-sm text-gray-600 mb-1" data-i18n="colDept">Department</label>
-                        <input type="text" id="emp-dept" required class="glass-input w-full px-3 py-2 rounded-lg text-sm">
+                        <label class="block text-sm text-gray-600 mb-1" data-i18n="colFactory">Factory</label>
+                        <select id="emp-factory" required class="glass-input w-full px-3 py-2 rounded-lg text-sm">
+                            <option value="" disabled selected>-- Select Factory --</option>
+                            <option value="AAA">AAA</option>
+                            <option value="BB">BB</option>
+                            <option value="LPN">LPN</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-sm text-gray-600 mb-1" data-i18n="colPosition">Position</label>
                         <input type="text" id="emp-pos" required class="glass-input w-full px-3 py-2 rounded-lg text-sm">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm text-gray-600 mb-1" data-i18n="colEmail">Email</label>
+                        <input type="email" id="emp-email" class="glass-input w-full px-3 py-2 rounded-lg text-sm" placeholder="example@email.com">
                     </div>
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
@@ -516,6 +533,7 @@
                 quickCheckin: "Quick Check-in", checkinDesc: "Select activity and scan/enter Employee ID", selectActivity: "Select Activity", employeeId: "Employee ID", btnCheckin: "Record Attendance",
                 search: "Search...", addActivity: "Add Activity", export: "Export CSV", addEmployee: "Add Employee", importCsv: "Import CSV", importSuccess: "Import Successful",
                 colId: "ID", colName: "Name", colDate: "Date", colTime: "Time", colStatus: "Status", colActions: "Actions", colEmpId: "Emp ID", colDept: "Department", colPosition: "Position",
+                colFullName: "Full Name", colFactory: "Factory", colEmail: "Email",
                 save: "Save", cancel: "Cancel", exportCsv: "Export Data"
             },
             th: {
@@ -527,6 +545,7 @@
                 quickCheckin: "เช็คอินด่วน", checkinDesc: "เลือกกิจกรรมและสแกน/กรอกรหัสพนักงาน", selectActivity: "เลือกกิจกรรม", employeeId: "รหัสพนักงาน", btnCheckin: "บันทึกการเช็คอิน",
                 search: "ค้นหา...", addActivity: "เพิ่มกิจกรรม", export: "ส่งออก CSV", addEmployee: "เพิ่มพนักงาน", importCsv: "นำเข้า CSV", importSuccess: "นำเข้าข้อมูลสำเร็จ",
                 colId: "รหัส", colName: "ชื่อ", colDate: "วันที่", colTime: "เวลา", colStatus: "สถานะ", colActions: "จัดการ", colEmpId: "รหัสพนักงาน", colDept: "แผนก", colPosition: "ตำแหน่ง",
+                colFullName: "ชื่อ-นามสกุล", colFactory: "โรงงาน", colEmail: "อีเมล",
                 save: "บันทึก", cancel: "ยกเลิก", exportCsv: "ส่งออกข้อมูล"
             }
         };
@@ -853,16 +872,19 @@
             tbody.innerHTML = '';
             
             state.data.employees.filter(e => 
-                (e.first_name || '').toLowerCase().includes(search) || 
+                (e.full_name || e.first_name || '').toLowerCase().includes(search) || 
                 String(e.employee_id || '').toLowerCase().includes(search) ||
-                (e.department || '').toLowerCase().includes(search)
+                (e.factory || e.department || '').toLowerCase().includes(search)
             ).forEach(emp => {
+                const displayName = emp.full_name || (emp.first_name ? emp.first_name + ' ' + (emp.last_name||'') : '-');
+                const displayFactory = emp.factory || emp.department || '-';
                 tbody.innerHTML += `
                     <tr class="hover:bg-white/40 transition">
                         <td class="px-6 py-4 font-mono text-xs">${emp.employee_id}</td>
-                        <td class="px-6 py-4 font-medium">${emp.first_name} ${emp.last_name}</td>
-                        <td class="px-6 py-4 text-xs">${emp.department}</td>
-                        <td class="px-6 py-4 text-xs">${emp.position}</td>
+                        <td class="px-6 py-4 font-medium">${displayName}</td>
+                        <td class="px-6 py-4 text-xs">${displayFactory}</td>
+                        <td class="px-6 py-4 text-xs">${emp.position || '-'}</td>
+                        <td class="px-6 py-4 text-xs">${emp.email || '-'}</td>
                         <td class="px-6 py-4 text-right">
                             <button onclick="editEmployee('${emp.employee_id}')" class="text-blue-500 hover:text-blue-700 mx-1"><i class="fa-solid fa-edit"></i></button>
                             <button onclick="deleteRecord('Employees', '${emp.employee_id}')" class="text-red-500 hover:text-red-700 mx-1"><i class="fa-solid fa-trash"></i></button>
@@ -879,10 +901,10 @@
             const isEdit = document.getElementById('emp-is-edit').value === 'true';
             const payload = {
                 employee_id: document.getElementById('emp-id').value,
-                first_name: document.getElementById('emp-fname').value,
-                last_name: document.getElementById('emp-lname').value,
-                department: document.getElementById('emp-dept').value,
-                position: document.getElementById('emp-pos').value
+                full_name: document.getElementById('emp-fullname').value,
+                factory: document.getElementById('emp-factory').value,
+                position: document.getElementById('emp-pos').value,
+                email: document.getElementById('emp-email').value
             };
 
             const action = isEdit ? 'update_employee' : 'add_employee';
@@ -900,12 +922,12 @@
             document.getElementById('emp-is-edit').value = 'true';
             document.getElementById('emp-id').value = emp.employee_id;
             document.getElementById('emp-id').readOnly = true;
-            document.getElementById('emp-fname').value = emp.first_name;
-            document.getElementById('emp-lname').value = emp.last_name;
-            document.getElementById('emp-dept').value = emp.department;
-            document.getElementById('emp-pos').value = emp.position;
+            document.getElementById('emp-fullname').value = emp.full_name || (emp.first_name ? emp.first_name + ' ' + (emp.last_name||'') : '');
+            document.getElementById('emp-factory').value = emp.factory || emp.department || '';
+            document.getElementById('emp-pos').value = emp.position || '';
+            document.getElementById('emp-email').value = emp.email || '';
             
-            document.getElementById('modal-employee-title').innerText = 'Edit Employee';
+            document.getElementById('modal-employee-title').innerText = state.lang === 'en' ? 'Edit Employee' : 'แก้ไขข้อมูลพนักงาน';
             document.getElementById('employee-modal').classList.remove('hidden');
         }
 
@@ -922,15 +944,16 @@
 
             filtered.sort((a,b) => new Date(b.checkin_time) - new Date(a.checkin_time)).forEach(att => {
                 const act = state.data.activities.find(a => String(a.activity_id) === String(att.activity_id)) || { activity_name: 'Unknown' };
-                const emp = state.data.employees.find(e => String(e.employee_id) === String(att.employee_id)) || { first_name: 'Unknown', last_name: '' };
+                const emp = state.data.employees.find(e => String(e.employee_id) === String(att.employee_id)) || { full_name: 'Unknown', first_name: '', last_name: '' };
                 const d = new Date(att.checkin_time);
+                const displayName = emp.full_name || (emp.first_name ? emp.first_name + ' ' + (emp.last_name||'') : '-');
                 
                 tbody.innerHTML += `
                     <tr class="hover:bg-white/40 transition">
                         <td class="px-6 py-4 text-xs">${d.toLocaleDateString()}</td>
                         <td class="px-6 py-4 font-medium text-xs">${act.activity_name}</td>
                         <td class="px-6 py-4 font-mono text-xs">${att.employee_id}</td>
-                        <td class="px-6 py-4 text-xs">${emp.first_name} ${emp.last_name}</td>
+                        <td class="px-6 py-4 text-xs">${displayName}</td>
                         <td class="px-6 py-4 text-xs text-green-600 font-semibold">${d.toLocaleTimeString()}</td>
                     </tr>
                 `;
@@ -951,13 +974,17 @@
                 data = state.data.attendance.map(a => {
                     const emp = state.data.employees.find(e => String(e.employee_id) === String(a.employee_id)) || {};
                     const act = state.data.activities.find(ac => String(ac.activity_id) === String(a.activity_id)) || {};
+                    const displayName = emp.full_name || (emp.first_name ? emp.first_name + ' ' + (emp.last_name||'') : '-');
+                    const displayFactory = emp.factory || emp.department || '-';
                     return {
                         CheckInID: a.id,
                         Date: a.checkin_time,
                         ActivityName: act.activity_name,
                         EmployeeID: a.employee_id,
-                        Name: `${emp.first_name} ${emp.last_name}`,
-                        Department: emp.department
+                        Name: displayName,
+                        Factory: displayFactory,
+                        Position: emp.position || '',
+                        Email: emp.email || ''
                     };
                 });
             }
