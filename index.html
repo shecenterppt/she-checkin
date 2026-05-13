@@ -636,8 +636,7 @@
                 didOpen: () => Swal.showLoading()
             });
 
-            // Initialize App
-            await apiCall('init');
+            // เอา await apiCall('init') ออกไปเพื่อประหยัดเวลา (Backend จะเช็คให้เองใน get_all)
             await loadInitialData();
             
             Swal.close();
@@ -668,9 +667,12 @@
         function renderAll() {
             renderDashboard();
             renderCheckinDropdown();
-            renderActivities();
-            renderEmployees();
-            renderReports();
+            // หน่วงเวลา Render ตารางที่ยังไม่เห็นหน้าจอ เพื่อให้หน้าเว็บโหลดตอบสนองทันที
+            setTimeout(() => {
+                renderActivities();
+                renderEmployees();
+                renderReports();
+            }, 50);
         }
 
         function renderDashboard() {
@@ -965,42 +967,58 @@
 
         function exportCSV(type) {
             let data = [];
-            let filename = `${type}_Export_${new Date().toISOString().split('T')[0]}.csv`;
+            let filename = `${type}_Template_${new Date().toISOString().split('T')[0]}.csv`;
+            let headers = [];
             
-            if(type === 'Employees') data = state.data.employees;
-            else if (type === 'Activities') data = state.data.activities;
+            if(type === 'Employees') {
+                data = state.data.employees;
+                headers = ['employee_id', 'full_name', 'factory', 'position', 'email'];
+            }
+            else if (type === 'Activities') {
+                data = state.data.activities;
+                headers = ['activity_id', 'activity_name', 'description', 'activity_date', 'start_time', 'end_time', 'location', 'status'];
+            }
             else if (type === 'Attendance') {
+                headers = ['CheckInID', 'Date', 'ActivityName', 'EmployeeID', 'Name', 'Factory', 'Position', 'Email'];
                 // Enrich attendance data
                 data = state.data.attendance.map(a => {
                     const emp = state.data.employees.find(e => String(e.employee_id) === String(a.employee_id)) || {};
                     const act = state.data.activities.find(ac => String(ac.activity_id) === String(a.activity_id)) || {};
-                    const displayName = emp.full_name || (emp.first_name ? emp.first_name + ' ' + (emp.last_name||'') : '-');
-                    const displayFactory = emp.factory || emp.department || '-';
                     return {
                         CheckInID: a.id,
                         Date: a.checkin_time,
                         ActivityName: act.activity_name,
                         EmployeeID: a.employee_id,
-                        Name: displayName,
-                        Factory: displayFactory,
+                        Name: emp.full_name || '',
+                        Factory: emp.factory || '',
                         Position: emp.position || '',
                         Email: emp.email || ''
                     };
                 });
             }
 
-            if(data.length === 0) return Swal.fire('No Data', 'There is no data to export.', 'info');
-
-            const headers = Object.keys(data[0]);
             const csvRows = [headers.join(',')];
-            
-            data.forEach(row => {
-                const values = headers.map(header => {
-                    const val = (row[header] || '').toString().replace(/"/g, '""');
-                    return `"${val}"`;
+
+            if(data && data.length > 0) {
+                // ถ้ามีข้อมูล ค่อยเปลี่ยนชื่อไฟล์เป็น Export
+                filename = `${type}_Export_${new Date().toISOString().split('T')[0]}.csv`;
+                data.forEach(row => {
+                    const values = headers.map(header => {
+                        const val = (row[header] || '').toString().replace(/"/g, '""');
+                        return `"${val}"`;
+                    });
+                    csvRows.push(values.join(','));
                 });
-                csvRows.push(values.join(','));
-            });
+            } else {
+                // แจ้งเตือนผู้ใช้ว่าเป็นเพียง Template ว่างๆ
+                Swal.fire({
+                    icon: 'info',
+                    title: state.lang === 'en' ? 'Template Downloaded' : 'ดาวน์โหลดเทมเพลต',
+                    text: state.lang === 'en' ? 'No data found. An empty template was exported.' : 'ไม่มีข้อมูลในระบบ ทำการดาวน์โหลดไฟล์เทมเพลตเปล่าสำหรับนำเข้า',
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            }
 
             // Using BOM for UTF-8 Excel support (crucial for Thai characters)
             const csvContent = '\uFEFF' + csvRows.join('\n');
