@@ -741,14 +741,14 @@
             const empId = document.getElementById('checkin-emp-id').value.trim().toUpperCase();
 
             // Validate Employee
-            const emp = state.data.employees.find(e => e.employee_id === empId);
+            const emp = state.data.employees.find(e => String(e.employee_id).toUpperCase() === empId);
             if (!emp) {
                 Swal.fire({ icon: 'error', title: 'Not Found', text: `Employee ID ${empId} not found in database.` });
                 return;
             }
 
             // Check Duplicate
-            const duplicate = state.data.attendance.find(a => a.activity_id === actId && a.employee_id === empId);
+            const duplicate = state.data.attendance.find(a => String(a.activity_id) === String(actId) && String(a.employee_id).toUpperCase() === empId);
             if (duplicate) {
                 Swal.fire({ icon: 'warning', title: 'Already Checked In', text: `${emp.first_name} is already registered for this activity.` });
                 document.getElementById('checkin-emp-id').value = '';
@@ -784,7 +784,7 @@
             tbody.innerHTML = '';
             
             state.data.activities.filter(a => 
-                a.activity_name.toLowerCase().includes(search) || a.activity_id.toLowerCase().includes(search)
+                (a.activity_name || '').toLowerCase().includes(search) || String(a.activity_id || '').toLowerCase().includes(search)
             ).forEach(act => {
                 const statusBadge = act.status === 'Active' ? 
                     '<span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">Active</span>' : 
@@ -831,7 +831,7 @@
         });
 
         function editActivity(id) {
-            const act = state.data.activities.find(a => a.activity_id === id);
+            const act = state.data.activities.find(a => String(a.activity_id) === String(id));
             if(!act) return;
             document.getElementById('act-is-edit').value = 'true';
             document.getElementById('act-id').value = act.activity_id;
@@ -853,9 +853,9 @@
             tbody.innerHTML = '';
             
             state.data.employees.filter(e => 
-                e.first_name.toLowerCase().includes(search) || 
-                e.employee_id.toLowerCase().includes(search) ||
-                e.department.toLowerCase().includes(search)
+                (e.first_name || '').toLowerCase().includes(search) || 
+                String(e.employee_id || '').toLowerCase().includes(search) ||
+                (e.department || '').toLowerCase().includes(search)
             ).forEach(emp => {
                 tbody.innerHTML += `
                     <tr class="hover:bg-white/40 transition">
@@ -895,7 +895,7 @@
         });
 
         function editEmployee(id) {
-            const emp = state.data.employees.find(e => e.employee_id === id);
+            const emp = state.data.employees.find(e => String(e.employee_id) === String(id));
             if(!emp) return;
             document.getElementById('emp-is-edit').value = 'true';
             document.getElementById('emp-id').value = emp.employee_id;
@@ -917,12 +917,12 @@
             tbody.innerHTML = '';
             
             let filtered = state.data.attendance;
-            if(actFilter) filtered = filtered.filter(a => a.activity_id === actFilter);
+            if(actFilter) filtered = filtered.filter(a => String(a.activity_id) === String(actFilter));
             if(dateFilter) filtered = filtered.filter(a => a.checkin_time && a.checkin_time.startsWith(dateFilter));
 
             filtered.sort((a,b) => new Date(b.checkin_time) - new Date(a.checkin_time)).forEach(att => {
-                const act = state.data.activities.find(a => a.activity_id === att.activity_id) || { activity_name: 'Unknown' };
-                const emp = state.data.employees.find(e => e.employee_id === att.employee_id) || { first_name: 'Unknown', last_name: '' };
+                const act = state.data.activities.find(a => String(a.activity_id) === String(att.activity_id)) || { activity_name: 'Unknown' };
+                const emp = state.data.employees.find(e => String(e.employee_id) === String(att.employee_id)) || { first_name: 'Unknown', last_name: '' };
                 const d = new Date(att.checkin_time);
                 
                 tbody.innerHTML += `
@@ -949,8 +949,8 @@
             else if (type === 'Attendance') {
                 // Enrich attendance data
                 data = state.data.attendance.map(a => {
-                    const emp = state.data.employees.find(e => e.employee_id === a.employee_id) || {};
-                    const act = state.data.activities.find(ac => ac.activity_id === a.activity_id) || {};
+                    const emp = state.data.employees.find(e => String(e.employee_id) === String(a.employee_id)) || {};
+                    const act = state.data.activities.find(ac => String(ac.activity_id) === String(a.activity_id)) || {};
                     return {
                         CheckInID: a.id,
                         Date: a.checkin_time,
