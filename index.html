@@ -770,8 +770,12 @@
 
             // Check Duplicate
             const duplicate = state.data.attendance.find(a => String(a.activity_id) === String(actId) && String(a.employee_id).toUpperCase() === empId);
+            
+            // เตรียมชื่อสำหรับแสดงผล (รองรับทั้งข้อมูลเก่าและใหม่)
+            const displayName = emp.full_name || (emp.first_name ? emp.first_name + ' ' + (emp.last_name||'') : empId);
+
             if (duplicate) {
-                Swal.fire({ icon: 'warning', title: 'Already Checked In', text: `${emp.first_name} is already registered for this activity.` });
+                Swal.fire({ icon: 'warning', title: 'Already Checked In', text: `${displayName} is already registered for this activity.` });
                 document.getElementById('checkin-emp-id').value = '';
                 return;
             }
@@ -790,8 +794,8 @@
                 renderAll();
                 Swal.fire({
                     icon: 'success',
-                    title: 'Success!',
-                    text: `${emp.first_name} ${emp.last_name} checked in.`,
+                    title: state.lang === 'en' ? 'Success!' : 'สำเร็จ!',
+                    text: state.lang === 'en' ? `${displayName} checked in.` : `เช็คอิน ${displayName} สำเร็จ`,
                     timer: 2000,
                     showConfirmButton: false
                 });
