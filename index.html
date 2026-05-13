@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHE Activity Check-in</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans Thai"', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#22C55E',
+                        dark: '#15803D',
+                        light: '#DCFCE7'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Glassmorphism Styles */
+        body {
+            background: linear-gradient(135deg, #e0f2fe 0%, #dcfce7 100%);
+            background-attachment: fixed;
+        }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .glass-input {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(4px);
+        }
+
+        .glass-input:focus {
+            background: rgba(255, 255, 255, 0.9);
+            outline: none;
+            border-color: #22C55E;
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Loader */
+        .loader {
+            border-top-color: #22C55E;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased min-h-screen flex flex-col">
+
+    <div id="global-loader" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col justify-center items-center hidden">
+        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-16 w-16 mb-4"></div>
+        <h2 class="text-xl font-semibold text-gray-700" data-i18n="loading">Loading...</h2>
+        <p class="text-gray-500 mt-2" data-i18n="pleaseWait">Please wait while we sync with the database</p>
+    </div>
+
+    <div id="main-app" class="hidden h-screen flex flex-col md:flex-row overflow-hidden w-full">
+        
+        <!-- Sidebar (Desktop) -->
+        <aside class="glass w-64 hidden md:flex flex-col h-full border-r border-white/40 z-20 shrink-0">
+            <div class="p-6 flex items-center gap-3 border-b border-white/40">
+                <div class="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center text-dark">
+                    <i class="fa-solid fa-leaf text-xl"></i>
+                </div>
+                <h1 class="font-bold text-xl text-gray-800 tracking-tight">SHE <span class="text-primary">Sync</span></h1>
+            </div>
+            
+            <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+                <a href="#" onclick="switchTab('dashboard')" class="nav-btn active flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-white/50 transition-colors" data-target="dashboard">
+                    <i class="fa-solid fa-chart-pie w-5"></i> <span data-i18n="menuDashboard">Dashboard</span>
+                </a>
+                <a href="#" onclick="switchTab('checkin')" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-white/50 transition-colors" data-target="checkin">
+                    <i class="fa-solid fa-qrcode w-5"></i> <span data-i18n="menuCheckin">Check-in</span>
+                </a>
+                <a href="#" onclick="switchTab('activities')" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-white/50 transition-colors" data-target="activities">
+                    <i class="fa-solid fa-calendar-check w-5"></i> <span data-i18n="menuActivities">Activities</span>
+                </a>
+                <a href="#" onclick="switchTab('employees')" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-white/50 transition-colors" data-target="employees">
+                    <i class="fa-solid fa-users w-5"></i> <span data-i18n="menuEmployees">Employees</span>
+                </a>
+                <a href="#" onclick="switchTab('reports')" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-white/50 transition-colors" data-target="reports">
+                    <i class="fa-solid fa-file-lines w-5"></i> <span data-i18n="menuReports">Reports</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+            
+            <header class="glass h-16 flex items-center justify-between px-4 sm:px-6 z-10 shrink-0">
+                <div class="flex items-center gap-3 md:hidden">
+                    <div class="w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center text-dark">
+                        <i class="fa-solid fa-leaf"></i>
+                    </div>
+                    <h1 class="font-bold text-lg text-gray-800">SHE <span class="text-primary">Sync</span></h1>
+                </div>
+                
+                <div class="hidden md:block">
+                    <h2 id="page-title" class="text-xl font-semibold text-gray-800 capitalize" data-i18n="menuDashboard">Dashboard</h2>
+                </div>
+
+                <div class="flex items-center gap-2 sm:gap-4 ml-auto">
+                    <!-- Refresh Button -->
+                    <button onclick="refreshData()" class="p-2 rounded-full text-gray-600 hover:bg-white/50 hover:text-primary transition-colors" title="Sync Data">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                    
+                    <!-- Language Toggle -->
+                    <div class="flex bg-white/50 rounded-lg p-1 backdrop-blur-sm border border-white/60">
+                        <button onclick="setLang('en')" id="lang-en" class="px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors bg-white shadow-sm text-primary">EN</button>
+                        <button onclick="setLang('th')" id="lang-th" class="px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-500 hover:text-gray-700">TH</button>
+                    </div>
+                    
+                    <!-- User Profile -->
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-r from-primary to-dark text-white flex items-center justify-center font-bold text-sm shadow-md cursor-pointer ml-2">
+                        AD
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 relative">
+                
+                <!-- 1. Dashboard View -->
+                <div id="view-dashboard" class="view-section active space-y-6">
+                    <!-- Stats Row -->
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                        <div class="glass-card p-5">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500" data-i18n="totalActivities">Total Activities</p>
+                                    <h3 class="text-2xl font-bold text-gray-800 mt-1" id="stat-activities">0</h3>
+                                </div>
+                                <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fa-solid fa-calendar"></i></div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-5">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500" data-i18n="totalEmployees">Total Employees</p>
+                                    <h3 class="text-2xl font-bold text-gray-800 mt-1" id="stat-employees">0</h3>
+                                </div>
+                                <div class="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fa-solid fa-users"></i></div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-5">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500" data-i18n="totalCheckins">Total Check-ins</p>
+                                    <h3 class="text-2xl font-bold text-gray-800 mt-1" id="stat-checkins">0</h3>
+                                </div>
+                                <div class="w-10 h-10 rounded-lg bg-green-100 text-green-600 flex items-center justify-center"><i class="fa-solid fa-check-circle"></i></div>
+                            </div>
+                        </div>
+                        <div class="glass-card p-5">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500" data-i18n="todayCheckins">Today's Check-ins</p>
+                                    <h3 class="text-2xl font-bold text-gray-800 mt-1" id="stat-today">0</h3>
+                                </div>
+                                <div class="w-10 h-10 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center"><i class="fa-solid fa-clock"></i></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts & Recent -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="glass-card p-5 lg:col-span-2">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4" data-i18n="attendanceTrend">Attendance Trend</h3>
+                            <div class="w-full h-64">
+                                <canvas id="dashboardChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="glass-card p-5 flex flex-col">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4" data-i18n="recentActivities">Recent Activities</h3>
+                            <div class="flex-1 overflow-y-auto space-y-3" id="recent-activities-list">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-checkin" class="view-section hidden max-w-4xl mx-auto">
+                    <div class="glass-card p-6 md:p-8 shadow-xl border-t-4 border-t-primary">
+                        <div class="text-center mb-8">
+                            <i class="fa-solid fa-qrcode text-5xl text-primary mb-4"></i>
+                            <h2 class="text-3xl font-bold text-gray-800" data-i18n="quickCheckin">Quick Check-in</h2>
+                            <p class="text-gray-500 mt-2" data-i18n="checkinDesc">Select activity and scan/enter Employee ID</p>
+                        </div>
+
+                        <form id="checkin-form" class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="selectActivity">Select Activity</label>
+                                <select id="checkin-activity" required class="glass-input w-full px-4 py-3 rounded-xl text-gray-800 text-lg appearance-none cursor-pointer">
+                                    <option value="" disabled selected>-- Choose Active Activity --</option>
+                                    <!-- Populated via JS -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="employeeId">Employee ID</label>
+                                <div class="relative">
+                                    <input type="text" id="checkin-emp-id" required class="glass-input w-full px-4 py-4 rounded-xl text-gray-800 text-2xl font-mono text-center tracking-wider" placeholder="EMP-001" autocomplete="off">
+                                    <button type="button" class="absolute right-3 top-1/2 transform -translate-y-1/2 w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-600 transition-colors">
+                                        <i class="fa-solid fa-barcode"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full bg-primary hover:bg-dark text-white font-bold text-xl py-4 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center justify-center gap-3">
+                                <i class="fa-solid fa-check-to-slot"></i>
+                                <span data-i18n="btnCheckin">Record Attendance</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 3. Activities View -->
+                <div id="view-activities" class="view-section hidden space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div class="relative w-full sm:w-64">
+                            <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="search-activity" class="glass-input w-full pl-10 pr-4 py-2 rounded-lg text-sm" placeholder="Search activities...">
+                        </div>
+                        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <input type="file" id="import-activity-file" accept=".csv" class="hidden" onchange="processCSV(event, 'Activities')">
+                            <button onclick="document.getElementById('import-activity-file').click()" class="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex justify-center items-center gap-2">
+                                <i class="fa-solid fa-file-import"></i> <span data-i18n="importCsv">Import CSV</span>
+                            </button>
+                            <button onclick="exportCSV('Activities')" class="flex-1 sm:flex-none bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex justify-center items-center gap-2">
+                                <i class="fa-solid fa-download"></i> <span data-i18n="export">Export</span>
+                            </button>
+                            <button onclick="openModal('activity-modal')" class="flex-1 sm:flex-none bg-primary hover:bg-dark text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow flex justify-center items-center gap-2 whitespace-nowrap">
+                                <i class="fa-solid fa-plus"></i> <span data-i18n="addActivity">Add Activity</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-card overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-gray-600">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-50/50 border-b border-gray-200/60">
+                                    <tr>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colId">ID</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colName">Name</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colDate">Date</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colTime">Time</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colStatus">Status</th>
+                                        <th class="px-6 py-4 font-semibold text-right" data-i18n="colActions">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-activities" class="divide-y divide-gray-200/50">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Employees View -->
+                <div id="view-employees" class="view-section hidden space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div class="relative w-full sm:w-64">
+                            <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="search-employee" class="glass-input w-full pl-10 pr-4 py-2 rounded-lg text-sm" placeholder="Search employees...">
+                        </div>
+                        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <input type="file" id="import-employee-file" accept=".csv" class="hidden" onchange="processCSV(event, 'Employees')">
+                            <button onclick="document.getElementById('import-employee-file').click()" class="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex justify-center items-center gap-2">
+                                <i class="fa-solid fa-file-import"></i> <span data-i18n="importCsv">Import CSV</span>
+                            </button>
+                            <button onclick="exportCSV('Employees')" class="flex-1 sm:flex-none bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex justify-center items-center gap-2">
+                                <i class="fa-solid fa-download"></i> <span data-i18n="export">Export</span>
+                            </button>
+                            <button onclick="openModal('employee-modal')" class="flex-1 sm:flex-none bg-primary hover:bg-dark text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow flex justify-center items-center gap-2 whitespace-nowrap">
+                                <i class="fa-solid fa-plus"></i> <span data-i18n="addEmployee">Add Employee</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-card overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-gray-600">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-50/50 border-b border-gray-200/60">
+                                    <tr>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colEmpId">Emp ID</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colName">Name</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colDept">Department</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colPosition">Position</th>
+                                        <th class="px-6 py-4 font-semibold text-right" data-i18n="colActions">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-employees" class="divide-y divide-gray-200/50">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Reports View -->
+                <div id="view-reports" class="view-section hidden space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <select id="filter-report-activity" class="glass-input px-4 py-2 rounded-lg text-sm w-full sm:w-auto">
+                                <option value="">All Activities</option>
+                            </select>
+                            <input type="date" id="filter-report-date" class="glass-input px-4 py-2 rounded-lg text-sm w-full sm:w-auto">
+                        </div>
+                        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <button onclick="exportCSV('Attendance')" class="flex-1 sm:flex-none bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex justify-center items-center gap-2">
+                                <i class="fa-solid fa-download"></i> <span data-i18n="export">Export</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-card overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-gray-600">
+                                <thead class="text-xs text-gray-700 uppercase bg-gray-50/50 border-b border-gray-200/60">
+                                    <tr>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colDate">Date</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="menuActivities">Activity</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colEmpId">Emp ID</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colName">Name</th>
+                                        <th class="px-6 py-4 font-semibold" data-i18n="colTime">Check-in Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-reports" class="divide-y divide-gray-200/50">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+        
+        <nav class="md:hidden glass fixed bottom-0 left-0 w-full z-40 border-t border-white/40 pb-safe">
+            <div class="flex justify-around items-center h-16">
+                <a href="#" onclick="switchTab('dashboard')" class="nav-btn-mobile flex flex-col items-center gap-1 text-primary w-1/5" data-target="dashboard">
+                    <i class="fa-solid fa-chart-pie text-lg"></i>
+                    <span class="text-[10px] font-medium" data-i18n="menuDashboard">Dashboard</span>
+                </a>
+                <a href="#" onclick="switchTab('activities')" class="nav-btn-mobile flex flex-col items-center gap-1 text-gray-500 w-1/5" data-target="activities">
+                    <i class="fa-solid fa-calendar-check text-lg"></i>
+                    <span class="text-[10px] font-medium" data-i18n="menuActivities">Activities</span>
+                </a>
+                <div class="w-1/5 flex justify-center -mt-6">
+                    <a href="#" onclick="switchTab('checkin')" class="nav-btn-mobile w-14 h-14 bg-gradient-to-r from-primary to-dark rounded-full text-white flex items-center justify-center shadow-lg shadow-green-500/30 border-4 border-green-50" data-target="checkin">
+                        <i class="fa-solid fa-qrcode text-xl"></i>
+                    </a>
+                </div>
+                <a href="#" onclick="switchTab('employees')" class="nav-btn-mobile flex flex-col items-center gap-1 text-gray-500 w-1/5" data-target="employees">
+                    <i class="fa-solid fa-users text-lg"></i>
+                    <span class="text-[10px] font-medium" data-i18n="menuEmployees">Employees</span>
+                </a>
+                <a href="#" onclick="switchTab('reports')" class="nav-btn-mobile flex flex-col items-center gap-1 text-gray-500 w-1/5" data-target="reports">
+                    <i class="fa-solid fa-file-lines text-lg"></i>
+                    <span class="text-[10px] font-medium" data-i18n="menuReports">Reports</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Add/Edit Activity Modal -->
+    <div id="activity-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-lg bg-white/90 p-6 relative">
+            <button onclick="closeModal('activity-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fa-solid fa-times text-xl"></i></button>
+            <h3 class="text-xl font-bold text-gray-800 mb-4" id="modal-activity-title">Add Activity</h3>
+            <form id="form-activity" class="space-y-4">
+                <input type="hidden" id="act-is-edit" value="false">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm text-gray-600 mb-1" data-i18n="colId">Activity ID</label>
+                        <input type="text" id="act-id" required class="glass-input w-full px-3 py-2 rounded-lg text-sm" placeholder="ACT-2023-01">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm text-gray-600 mb-1" data-i18n="colName">Activity Name</label>
+                        <input type="text" id="act-name" required class="glass-input w-full px-3 py-2 rounded-lg text-sm">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm text-gray-600 mb-1">Description</label>
+                        <textarea id="act-desc" rows="2" class="glass-input w-full px-3 py-2 rounded-lg text-sm"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" data-i18n="colDate">Date</label>
+                        <input type="date" id="act-date" required class="glass-input w-full px-3 py-2 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" data-i18n="colStatus">Status</label>
+                        <select id="act-status" class="glass-input w-full px-3 py-2 rounded-lg text-sm">
+                            <option value="Active">Active</option>
+                            <option value="Closed">Closed</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Start Time</label>
+                        <input type="time" id="act-start" class="glass-input w-full px-3 py-2 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">End Time</label>
+                        <input type="time" id="act-end" class="glass-input w-full px-3 py-2 rounded-lg text-sm">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('activity-modal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium" data-i18n="cancel">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-primary hover:bg-dark text-white rounded-lg text-sm font-medium shadow" data-i18n="save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Employee Modal -->
+    <div id="employee-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-lg bg-white/90 p-6 relative">
+            <button onclick="closeModal('employee-modal')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fa-solid fa-times text-xl"></i></button>
+            <h3 class="text-xl font-bold text-gray-800 mb-4" id="modal-employee-title">Add Employee</h3>
+            <form id="form-employee" class="space-y-4">
+                <input type="hidden" id="emp-is-edit" value="false">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm text-gray-600 mb-1" data-i18n="colEmpId">Employee ID</label>
+                        <input type="text" id="emp-id" required class="glass-input w-full px-3 py-2 rounded-lg text-sm" placeholder="EMP-001">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">First Name</label>
+                        <input type="text" id="emp-fname" required class="glass-input w-full px-3 py-2 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Last Name</label>
+                        <input type="text" id="emp-lname" required class="glass-input w-full px-3 py-2 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" data-i18n="colDept">Department</label>
+                        <input type="text" id="emp-dept" required class="glass-input w-full px-3 py-2 rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1" data-i18n="colPosition">Position</label>
+                        <input type="text" id="emp-pos" required class="glass-input w-full px-3 py-2 rounded-lg text-sm">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('employee-modal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium" data-i18n="cancel">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-primary hover:bg-dark text-white rounded-lg text-sm font-medium shadow" data-i18n="save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- CONSTANTS & STATE ---
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyRYRL3knHd5C7diA-PEqLBt17QLIKZFnngfYJoOHjRSP3uj5YpAN2_1eKY9TRCOlvk/exec';
+        
+        const state = {
+            lang: localStorage.getItem('she_lang') || 'en',
+            data: { employees: [], activities: [], attendance: [] },
+            chartInstance: null
+        };
+
+        const dict = {
+            en: {
+                sysName: "SHE Activity Check-in", loginDesc: "Enter your credentials", username: "Username", password: "Password", loginBtn: "Sign In",
+                loading: "Loading...", pleaseWait: "Please wait while we sync with the database",
+                menuDashboard: "Dashboard", menuCheckin: "Check-in", menuActivities: "Activities", menuEmployees: "Employees", menuReports: "Reports", logout: "Logout",
+                totalActivities: "Total Activities", totalEmployees: "Total Employees", totalCheckins: "Total Check-ins", todayCheckins: "Today's Check-ins",
+                attendanceTrend: "Attendance Trend", recentActivities: "Recent Activities",
+                quickCheckin: "Quick Check-in", checkinDesc: "Select activity and scan/enter Employee ID", selectActivity: "Select Activity", employeeId: "Employee ID", btnCheckin: "Record Attendance",
+                search: "Search...", addActivity: "Add Activity", export: "Export CSV", addEmployee: "Add Employee", importCsv: "Import CSV", importSuccess: "Import Successful",
+                colId: "ID", colName: "Name", colDate: "Date", colTime: "Time", colStatus: "Status", colActions: "Actions", colEmpId: "Emp ID", colDept: "Department", colPosition: "Position",
+                save: "Save", cancel: "Cancel", exportCsv: "Export Data"
+            },
+            th: {
+                sysName: "ระบบเช็คอินกิจกรรม SHE", loginDesc: "เข้าสู่ระบบเพื่อใช้งาน", username: "ชื่อผู้ใช้", password: "รหัสผ่าน", loginBtn: "เข้าสู่ระบบ",
+                loading: "กำลังโหลด...", pleaseWait: "กรุณารอสักครู่ กำลังซิงค์ข้อมูล",
+                menuDashboard: "แผงควบคุม", menuCheckin: "เช็คอิน", menuActivities: "กิจกรรม", menuEmployees: "พนักงาน", menuReports: "รายงาน", logout: "ออกจากระบบ",
+                totalActivities: "กิจกรรมทั้งหมด", totalEmployees: "พนักงานทั้งหมด", totalCheckins: "การเช็คอินทั้งหมด", todayCheckins: "การเช็คอินวันนี้",
+                attendanceTrend: "แนวโน้มการเข้าร่วม", recentActivities: "กิจกรรมล่าสุด",
+                quickCheckin: "เช็คอินด่วน", checkinDesc: "เลือกกิจกรรมและสแกน/กรอกรหัสพนักงาน", selectActivity: "เลือกกิจกรรม", employeeId: "รหัสพนักงาน", btnCheckin: "บันทึกการเช็คอิน",
+                search: "ค้นหา...", addActivity: "เพิ่มกิจกรรม", export: "ส่งออก CSV", addEmployee: "เพิ่มพนักงาน", importCsv: "นำเข้า CSV", importSuccess: "นำเข้าข้อมูลสำเร็จ",
+                colId: "รหัส", colName: "ชื่อ", colDate: "วันที่", colTime: "เวลา", colStatus: "สถานะ", colActions: "จัดการ", colEmpId: "รหัสพนักงาน", colDept: "แผนก", colPosition: "ตำแหน่ง",
+                save: "บันทึก", cancel: "ยกเลิก", exportCsv: "ส่งออกข้อมูล"
+            }
+        };
+
+        // --- CORE FUNCTIONS ---
+        async function apiCall(action, payload = {}) {
+            showLoader();
+            try {
+                // Using text/plain to avoid CORS preflight issues typical with Google Apps Script
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action, payload })
+                });
+                const result = await response.json();
+                hideLoader();
+                if(!result.success) throw new Error(result.message);
+                return result;
+            } catch (error) {
+                hideLoader();
+                Swal.fire({ icon: 'error', title: 'API Error', text: error.message });
+                console.error("API Error:", error);
+                return { success: false };
+            }
+        }
+
+        function showLoader() { document.getElementById('global-loader').classList.remove('hidden'); }
+        function hideLoader() { document.getElementById('global-loader').classList.add('hidden'); }
+
+        function setLang(lang) {
+            state.lang = lang;
+            localStorage.setItem('she_lang', lang);
+            
+            // Update UI buttons
+            document.getElementById('lang-en').className = lang === 'en' ? 'px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors bg-white shadow-sm text-primary' : 'px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-500 hover:text-gray-700';
+            document.getElementById('lang-th').className = lang === 'th' ? 'px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors bg-white shadow-sm text-primary' : 'px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors text-gray-500 hover:text-gray-700';
+
+            // Translate elements
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[lang][key]) {
+                    if (el.tagName === 'INPUT' && el.type === 'text') el.placeholder = dict[lang][key];
+                    else el.innerText = dict[lang][key];
+                }
+            });
+            
+            // Update active tab title
+            const activeTab = document.querySelector('.nav-btn.active');
+            if(activeTab) {
+                const target = activeTab.getAttribute('data-target');
+                document.getElementById('page-title').innerText = dict[lang][`menu${target.charAt(0).toUpperCase() + target.slice(1)}`] || target;
+            }
+        }
+
+        function switchTab(tabId) {
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            
+            // Update Desktop Nav
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('active', 'bg-white/50', 'text-primary');
+                el.classList.add('text-gray-600');
+                if(el.getAttribute('data-target') === tabId) {
+                    el.classList.add('active', 'bg-white/50', 'text-primary');
+                    el.classList.remove('text-gray-600');
+                    document.getElementById('page-title').innerText = el.innerText.trim();
+                }
+            });
+
+            // Update Mobile Nav
+            document.querySelectorAll('.nav-btn-mobile').forEach(el => {
+                if(!el.classList.contains('rounded-full')) { // skip center button styling
+                    el.classList.remove('text-primary');
+                    el.classList.add('text-gray-500');
+                    if(el.getAttribute('data-target') === tabId) {
+                        el.classList.add('text-primary');
+                        el.classList.remove('text-gray-500');
+                    }
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            Swal.fire({
+                title: state.lang === 'en' ? 'Initializing System...' : 'กำลังเตรียมระบบ...',
+                text: state.lang === 'en' ? 'Connecting to Database' : 'กำลังเชื่อมต่อฐานข้อมูล',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            // Initialize App
+            await apiCall('init');
+            await loadInitialData();
+            
+            Swal.close();
+            document.getElementById('main-app').classList.remove('hidden');
+            setLang(state.lang); // apply language
+            switchTab('dashboard');
+        });
+
+        async function loadInitialData() {
+            const res = await apiCall('get_all');
+            if (res.success) {
+                state.data = res.data;
+                renderAll();
+            }
+        }
+
+        async function refreshData() {
+            await loadInitialData();
+            Swal.fire({
+                icon: 'success',
+                title: state.lang === 'en' ? 'Refreshed' : 'อัพเดทข้อมูลแล้ว',
+                text: state.lang === 'en' ? 'Latest data loaded.' : 'โหลดข้อมูลล่าสุดสำเร็จ',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+
+        function renderAll() {
+            renderDashboard();
+            renderCheckinDropdown();
+            renderActivities();
+            renderEmployees();
+            renderReports();
+        }
+
+        function renderDashboard() {
+            const { activities, employees, attendance } = state.data;
+            
+            // Counts
+            document.getElementById('stat-activities').innerText = activities.length;
+            document.getElementById('stat-employees').innerText = employees.length;
+            document.getElementById('stat-checkins').innerText = attendance.length;
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayCount = attendance.filter(a => a.checkin_time && a.checkin_time.startsWith(todayStr)).length;
+            document.getElementById('stat-today').innerText = todayCount;
+
+            // Recent Activities list
+            const recentList = document.getElementById('recent-activities-list');
+            recentList.innerHTML = '';
+            [...activities].reverse().slice(0, 5).forEach(act => {
+                recentList.innerHTML += `
+                    <div class="flex items-center gap-4 p-3 rounded-xl hover:bg-white/40 transition">
+                        <div class="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-flag"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-semibold text-gray-800 truncate">${act.activity_name}</p>
+                            <p class="text-xs text-gray-500 truncate">${act.activity_date} | ${act.status}</p>
+                        </div>
+                    </div>`;
+            });
+
+            // Chart
+            const ctx = document.getElementById('dashboardChart').getContext('2d');
+            if(state.chartInstance) state.chartInstance.destroy();
+            
+            // Group attendance by date for last 7 days
+            const dates = {};
+            for(let i=6; i>=0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                dates[d.toISOString().split('T')[0]] = 0;
+            }
+            attendance.forEach(a => {
+                const d = a.checkin_time ? a.checkin_time.split('T')[0] : null;
+                if(d && dates[d] !== undefined) dates[d]++;
+            });
+
+            state.chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(dates).map(d => d.slice(5)), // MM-DD
+                    datasets: [{
+                        label: 'Check-ins',
+                        data: Object.values(dates),
+                        borderColor: '#22C55E',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+        }
+
+        function renderCheckinDropdown() {
+            const select = document.getElementById('checkin-activity');
+            select.innerHTML = '<option value="" disabled selected>-- Choose Active Activity --</option>';
+            state.data.activities.filter(a => a.status === 'Active').forEach(act => {
+                select.innerHTML += `<option value="${act.activity_id}">${act.activity_name} (${act.activity_date})</option>`;
+            });
+
+            // Populate Report Filters
+            const filterActivity = document.getElementById('filter-report-activity');
+            filterActivity.innerHTML = '<option value="">All Activities</option>';
+            state.data.activities.forEach(act => {
+                filterActivity.innerHTML += `<option value="${act.activity_id}">${act.activity_name}</option>`;
+            });
+        }
+
+        document.getElementById('checkin-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const actId = document.getElementById('checkin-activity').value;
+            const empId = document.getElementById('checkin-emp-id').value.trim().toUpperCase();
+
+            // Validate Employee
+            const emp = state.data.employees.find(e => e.employee_id === empId);
+            if (!emp) {
+                Swal.fire({ icon: 'error', title: 'Not Found', text: `Employee ID ${empId} not found in database.` });
+                return;
+            }
+
+            // Check Duplicate
+            const duplicate = state.data.attendance.find(a => a.activity_id === actId && a.employee_id === empId);
+            if (duplicate) {
+                Swal.fire({ icon: 'warning', title: 'Already Checked In', text: `${emp.first_name} is already registered for this activity.` });
+                document.getElementById('checkin-emp-id').value = '';
+                return;
+            }
+
+            // Save
+            const timestamp = new Date().toISOString();
+            const res = await apiCall('add_attendance', {
+                id: `CHK-${Date.now()}`,
+                activity_id: actId,
+                employee_id: empId,
+                checkin_time: timestamp
+            });
+
+            if (res.success) {
+                state.data.attendance.push(res.data);
+                renderAll();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: `${emp.first_name} ${emp.last_name} checked in.`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                document.getElementById('checkin-emp-id').value = ''; // clear
+            }
+        });
+
+        function renderActivities() {
+            const tbody = document.getElementById('table-activities');
+            const search = document.getElementById('search-activity').value.toLowerCase();
+            tbody.innerHTML = '';
+            
+            state.data.activities.filter(a => 
+                a.activity_name.toLowerCase().includes(search) || a.activity_id.toLowerCase().includes(search)
+            ).forEach(act => {
+                const statusBadge = act.status === 'Active' ? 
+                    '<span class="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">Active</span>' : 
+                    '<span class="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-medium">Closed</span>';
+                
+                tbody.innerHTML += `
+                    <tr class="hover:bg-white/40 transition">
+                        <td class="px-6 py-4 font-mono text-xs">${act.activity_id}</td>
+                        <td class="px-6 py-4 font-medium">${act.activity_name}</td>
+                        <td class="px-6 py-4 text-xs">${act.activity_date}</td>
+                        <td class="px-6 py-4 text-xs">${act.start_time || '-'}</td>
+                        <td class="px-6 py-4">${statusBadge}</td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="editActivity('${act.activity_id}')" class="text-blue-500 hover:text-blue-700 mx-1"><i class="fa-solid fa-edit"></i></button>
+                            <button onclick="deleteRecord('Activities', '${act.activity_id}')" class="text-red-500 hover:text-red-700 mx-1"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        document.getElementById('search-activity').addEventListener('input', renderActivities);
+
+        document.getElementById('form-activity').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const isEdit = document.getElementById('act-is-edit').value === 'true';
+            const payload = {
+                activity_id: document.getElementById('act-id').value,
+                activity_name: document.getElementById('act-name').value,
+                description: document.getElementById('act-desc').value,
+                activity_date: document.getElementById('act-date').value,
+                start_time: document.getElementById('act-start').value,
+                end_time: document.getElementById('act-end').value,
+                status: document.getElementById('act-status').value
+            };
+
+            const action = isEdit ? 'update_activity' : 'add_activity';
+            const res = await apiCall(action, payload);
+            
+            if (res.success) {
+                closeModal('activity-modal');
+                refreshData(); // Refresh to ensure data sync
+            }
+        });
+
+        function editActivity(id) {
+            const act = state.data.activities.find(a => a.activity_id === id);
+            if(!act) return;
+            document.getElementById('act-is-edit').value = 'true';
+            document.getElementById('act-id').value = act.activity_id;
+            document.getElementById('act-id').readOnly = true; // prevent ID change
+            document.getElementById('act-name').value = act.activity_name;
+            document.getElementById('act-desc').value = act.description;
+            document.getElementById('act-date').value = act.activity_date;
+            document.getElementById('act-start').value = act.start_time;
+            document.getElementById('act-end').value = act.end_time;
+            document.getElementById('act-status').value = act.status;
+            
+            document.getElementById('modal-activity-title').innerText = 'Edit Activity';
+            document.getElementById('activity-modal').classList.remove('hidden');
+        }
+
+        function renderEmployees() {
+            const tbody = document.getElementById('table-employees');
+            const search = document.getElementById('search-employee').value.toLowerCase();
+            tbody.innerHTML = '';
+            
+            state.data.employees.filter(e => 
+                e.first_name.toLowerCase().includes(search) || 
+                e.employee_id.toLowerCase().includes(search) ||
+                e.department.toLowerCase().includes(search)
+            ).forEach(emp => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-white/40 transition">
+                        <td class="px-6 py-4 font-mono text-xs">${emp.employee_id}</td>
+                        <td class="px-6 py-4 font-medium">${emp.first_name} ${emp.last_name}</td>
+                        <td class="px-6 py-4 text-xs">${emp.department}</td>
+                        <td class="px-6 py-4 text-xs">${emp.position}</td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="editEmployee('${emp.employee_id}')" class="text-blue-500 hover:text-blue-700 mx-1"><i class="fa-solid fa-edit"></i></button>
+                            <button onclick="deleteRecord('Employees', '${emp.employee_id}')" class="text-red-500 hover:text-red-700 mx-1"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        document.getElementById('search-employee').addEventListener('input', renderEmployees);
+
+        document.getElementById('form-employee').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const isEdit = document.getElementById('emp-is-edit').value === 'true';
+            const payload = {
+                employee_id: document.getElementById('emp-id').value,
+                first_name: document.getElementById('emp-fname').value,
+                last_name: document.getElementById('emp-lname').value,
+                department: document.getElementById('emp-dept').value,
+                position: document.getElementById('emp-pos').value
+            };
+
+            const action = isEdit ? 'update_employee' : 'add_employee';
+            const res = await apiCall(action, payload);
+            
+            if (res.success) {
+                closeModal('employee-modal');
+                refreshData();
+            }
+        });
+
+        function editEmployee(id) {
+            const emp = state.data.employees.find(e => e.employee_id === id);
+            if(!emp) return;
+            document.getElementById('emp-is-edit').value = 'true';
+            document.getElementById('emp-id').value = emp.employee_id;
+            document.getElementById('emp-id').readOnly = true;
+            document.getElementById('emp-fname').value = emp.first_name;
+            document.getElementById('emp-lname').value = emp.last_name;
+            document.getElementById('emp-dept').value = emp.department;
+            document.getElementById('emp-pos').value = emp.position;
+            
+            document.getElementById('modal-employee-title').innerText = 'Edit Employee';
+            document.getElementById('employee-modal').classList.remove('hidden');
+        }
+
+        function renderReports() {
+            const tbody = document.getElementById('table-reports');
+            const actFilter = document.getElementById('filter-report-activity').value;
+            const dateFilter = document.getElementById('filter-report-date').value;
+            
+            tbody.innerHTML = '';
+            
+            let filtered = state.data.attendance;
+            if(actFilter) filtered = filtered.filter(a => a.activity_id === actFilter);
+            if(dateFilter) filtered = filtered.filter(a => a.checkin_time && a.checkin_time.startsWith(dateFilter));
+
+            filtered.sort((a,b) => new Date(b.checkin_time) - new Date(a.checkin_time)).forEach(att => {
+                const act = state.data.activities.find(a => a.activity_id === att.activity_id) || { activity_name: 'Unknown' };
+                const emp = state.data.employees.find(e => e.employee_id === att.employee_id) || { first_name: 'Unknown', last_name: '' };
+                const d = new Date(att.checkin_time);
+                
+                tbody.innerHTML += `
+                    <tr class="hover:bg-white/40 transition">
+                        <td class="px-6 py-4 text-xs">${d.toLocaleDateString()}</td>
+                        <td class="px-6 py-4 font-medium text-xs">${act.activity_name}</td>
+                        <td class="px-6 py-4 font-mono text-xs">${att.employee_id}</td>
+                        <td class="px-6 py-4 text-xs">${emp.first_name} ${emp.last_name}</td>
+                        <td class="px-6 py-4 text-xs text-green-600 font-semibold">${d.toLocaleTimeString()}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        document.getElementById('filter-report-activity').addEventListener('change', renderReports);
+        document.getElementById('filter-report-date').addEventListener('change', renderReports);
+
+        function exportCSV(type) {
+            let data = [];
+            let filename = `${type}_Export_${new Date().toISOString().split('T')[0]}.csv`;
+            
+            if(type === 'Employees') data = state.data.employees;
+            else if (type === 'Activities') data = state.data.activities;
+            else if (type === 'Attendance') {
+                // Enrich attendance data
+                data = state.data.attendance.map(a => {
+                    const emp = state.data.employees.find(e => e.employee_id === a.employee_id) || {};
+                    const act = state.data.activities.find(ac => ac.activity_id === a.activity_id) || {};
+                    return {
+                        CheckInID: a.id,
+                        Date: a.checkin_time,
+                        ActivityName: act.activity_name,
+                        EmployeeID: a.employee_id,
+                        Name: `${emp.first_name} ${emp.last_name}`,
+                        Department: emp.department
+                    };
+                });
+            }
+
+            if(data.length === 0) return Swal.fire('No Data', 'There is no data to export.', 'info');
+
+            const headers = Object.keys(data[0]);
+            const csvRows = [headers.join(',')];
+            
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    const val = (row[header] || '').toString().replace(/"/g, '""');
+                    return `"${val}"`;
+                });
+                csvRows.push(values.join(','));
+            });
+
+            // Using BOM for UTF-8 Excel support (crucial for Thai characters)
+            const csvContent = '\uFEFF' + csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function processCSV(event, sheetName) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const text = e.target.result;
+                const data = parseCSV(text);
+                
+                // ตรวจสอบความถูกต้องของข้อมูล
+                if (data.length === 0) {
+                    Swal.fire({icon: 'error', title: state.lang === 'en' ? 'Error' : 'เกิดข้อผิดพลาด', text: state.lang === 'en' ? 'Empty or invalid CSV file. Check headers.' : 'ไฟล์ CSV ว่างเปล่าหรือรูปแบบไม่ถูกต้อง โปรดตรวจสอบชื่อคอลัมน์'});
+                    event.target.value = ''; // เคลียร์ค่า input
+                    return;
+                }
+
+                // สรุปข้อมูลก่อนการบันทึก
+                const confirm = await Swal.fire({
+                    title: state.lang === 'en' ? `Import ${data.length} records?` : `ต้องการนำเข้าข้อมูล ${data.length} รายการ?`,
+                    text: state.lang === 'en' ? `To ${sheetName} database.` : `ไปยังฐานข้อมูล ${sheetName}`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: state.lang === 'en' ? 'Yes, import' : 'ใช่, นำเข้าเลย',
+                    cancelButtonText: state.lang === 'en' ? 'Cancel' : 'ยกเลิก',
+                    confirmButtonColor: '#22C55E'
+                });
+
+                if (confirm.isConfirmed) {
+                    const res = await apiCall('import_csv', { sheetName: sheetName, data: data });
+                    if (res.success) {
+                        Swal.fire({icon: 'success', title: dict[state.lang].importSuccess, timer: 1500, showConfirmButton: false});
+                        refreshData(); // ดึงข้อมูลใหม่หลังจากเพิ่มสำเร็จ
+                    }
+                }
+                event.target.value = ''; // เคลียร์ค่า
+            };
+            
+            // อ่านเป็น UTF-8 เพื่อให้รองรับภาษาไทย
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        // ฟังก์ชันอ่าน CSV แบบ Robust รองรับการขึ้นบรรทัดใหม่ หรือ , ที่อยู่ในเครื่องหมายคำพูด ("")
+        function parseCSV(str) {
+            const arr = [];
+            let quote = false;
+            let col = 0, row = 0;
+            for (let c = 0; c < str.length; c++) {
+                let cc = str[c], nc = str[c+1];
+                arr[row] = arr[row] || [];
+                arr[row][col] = arr[row][col] || '';
+                
+                if (cc == '"' && quote && nc == '"') { arr[row][col] += cc; ++c; continue; }
+                if (cc == '"') { quote = !quote; continue; }
+                if (cc == ',' && !quote) { ++col; continue; }
+                if (cc == '\r' && nc == '\n' && !quote) { ++row; col = 0; ++c; continue; }
+                if (cc == '\n' && !quote) { ++row; col = 0; continue; }
+                if (cc == '\r' && !quote) { ++row; col = 0; continue; }
+                
+                arr[row][col] += cc;
+            }
+            if (arr.length < 2) return []; // ถ้ามีแต่ Header ไม่มี Data จะได้อาเรย์เปล่า
+            
+            // ลบอักขระ BOM ออก (ถ้ามี) ซึ่งมักติดมาตอนเซฟ Excel เป็น UTF-8
+            const rawHeaders = arr[0];
+            if(rawHeaders[0]) rawHeaders[0] = rawHeaders[0].replace(/^\uFEFF/, '');
+            
+            const headers = rawHeaders.map(h => h.trim());
+            
+            return arr.slice(1).filter(r => r.join('').trim() !== '').map(r => {
+                let obj = {};
+                headers.forEach((h, i) => { obj[h] = (r[i] || '').trim(); });
+                return obj;
+            });
+        }
+
+        function openModal(id) {
+            if(id === 'activity-modal') {
+                document.getElementById('form-activity').reset();
+                document.getElementById('act-is-edit').value = 'false';
+                document.getElementById('act-id').readOnly = false;
+                document.getElementById('modal-activity-title').innerText = 'Add Activity';
+            }
+            if(id === 'employee-modal') {
+                document.getElementById('form-employee').reset();
+                document.getElementById('emp-is-edit').value = 'false';
+                document.getElementById('emp-id').readOnly = false;
+                document.getElementById('modal-employee-title').innerText = 'Add Employee';
+            }
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        async function deleteRecord(type, id) {
+            const config = {
+                title: state.lang === 'en' ? 'Are you sure?' : 'คุณแน่ใจหรือไม่?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: state.lang === 'en' ? 'Yes, delete it!' : 'ใช่, ลบเลย!'
+            };
+            
+            const result = await Swal.fire(config);
+            if (result.isConfirmed) {
+                const actionName = type === 'Activities' ? 'delete_activity' : 'delete_employee';
+                const payloadKey = type === 'Activities' ? 'activity_id' : 'employee_id';
+                const payload = {};
+                payload[payloadKey] = id;
+                
+                const res = await apiCall(actionName, payload);
+                if(res.success) {
+                    Swal.fire('Deleted!', 'Record has been deleted.', 'success');
+                    refreshData();
+                }
+            }
+        }
+
+        // Initialize language UI on load (background initialization)
+        setLang(state.lang);
+    </script>
+</body>
+</html>
